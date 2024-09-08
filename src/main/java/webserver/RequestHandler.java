@@ -24,12 +24,7 @@ public class RequestHandler extends Thread {
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             final HttpRequestMessage httpRequestMessage = HttpRequestMessage.parseRequest(in);
-
-            byte[] body = handleHttpRequest(httpRequestMessage);
-
-            DataOutputStream dos = new DataOutputStream(out);
-            response200Header(dos, body.length);
-            responseBody(dos, body);
+            handleHttpRequest(out, httpRequestMessage);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -38,6 +33,18 @@ public class RequestHandler extends Thread {
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void response302Header(DataOutputStream dos, int lengthOfBodyContent, String location) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: " + location + "\r\n");
             dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
@@ -55,10 +62,14 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private byte[] handleHttpRequest(HttpRequestMessage httpRequestMessage) throws IOException {
+    private void handleHttpRequest(OutputStream out, HttpRequestMessage httpRequestMessage) throws IOException {
+        DataOutputStream dos = new DataOutputStream(out);
+
         final Path path = new File("./webapp" + httpRequestMessage.getUrl()).toPath();
         if (Files.exists(path)) {
-            return Files.readAllBytes(path);
+            final byte[] body = Files.readAllBytes(path);
+            response200Header(dos, body.length);
+            responseBody(dos, body);
         }
 
         if (httpRequestMessage.getRequestPath().equals("/user/create")) {
@@ -66,9 +77,11 @@ public class RequestHandler extends Thread {
                     httpRequestMessage.getBody("password"),
                     httpRequestMessage.getBody("name"),
                     httpRequestMessage.getBody("email"));
-        }
 
-        return "Hello, World!".getBytes();
+            final byte[] body = new byte[0];
+            response302Header(dos, body.length, "/index.html");
+            responseBody(dos, body);
+        }
     }
 
     private void signup(String userId, String password, String name, String email) {
