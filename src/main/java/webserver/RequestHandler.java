@@ -4,15 +4,10 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import util.HttpRequestUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -28,10 +23,9 @@ public class RequestHandler extends Thread {
                 connection.getPort());
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
-            final List<String> requestHeader = parseRequestHeader(in);
-            final String url = requestHeader.get(0).split(" ")[1];
+            final HttpRequestMessage httpRequestMessage = HttpRequestMessage.parseRequest(in);
 
-            byte[] body = getResponseBodyFromUrl(url);
+            byte[] body = handleHttpRequest(httpRequestMessage);
 
             DataOutputStream dos = new DataOutputStream(out);
             response200Header(dos, body.length);
@@ -61,35 +55,17 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private List<String> parseRequestHeader(InputStream in) throws IOException {
-        List<String> requestHeader = new ArrayList<>();
-        final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
-
-        String line;
-        while (!"".equals(line = bufferedReader.readLine())) {
-            if (line == null) {
-                return requestHeader;
-            }
-            log.info(line);
-            requestHeader.add(line);
-        }
-        return requestHeader;
-    }
-
-    private byte[] getResponseBodyFromUrl(String url) throws IOException {
-        final int index = url.indexOf("?");
-        final String requestPath = index == -1 ? url : url.substring(0, index);
-        final Map<String, String> queryString = index == -1 ?
-                new HashMap<>() :
-                HttpRequestUtils.parseQueryString(url.substring(index + 1));
-
-        final Path path = new File("./webapp" + url).toPath();
+    private byte[] handleHttpRequest(HttpRequestMessage httpRequestMessage) throws IOException {
+        final Path path = new File("./webapp" + httpRequestMessage.getUrl()).toPath();
         if (Files.exists(path)) {
             return Files.readAllBytes(path);
         }
 
-        if (requestPath.equals("/user/create")) {
-            signup(queryString.get("userId"), queryString.get("password"), queryString.get("name"), queryString.get("email"));
+        if (httpRequestMessage.getRequestPath().equals("/user/create")) {
+            signup(httpRequestMessage.getBody("userId"),
+                    httpRequestMessage.getBody("password"),
+                    httpRequestMessage.getBody("name"),
+                    httpRequestMessage.getBody("email"));
         }
 
         return "Hello, World!".getBytes();
