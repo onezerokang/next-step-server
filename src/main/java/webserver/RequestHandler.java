@@ -1,10 +1,10 @@
 package webserver;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +23,11 @@ public class RequestHandler extends Thread {
                 connection.getPort());
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
-            // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
+            final List<String> requestHeader = parseRequestHeader(in);
+            final String url = requestHeader.get(0).split(" ")[1];
+            byte[] body = getResponseBodyFromUrl(url);
+
             DataOutputStream dos = new DataOutputStream(out);
-            byte[] body = "Hello World".getBytes();
             response200Header(dos, body.length);
             responseBody(dos, body);
         } catch (IOException e) {
@@ -50,6 +52,29 @@ public class RequestHandler extends Thread {
             dos.flush();
         } catch (IOException e) {
             log.error(e.getMessage());
+        }
+    }
+
+    private List<String> parseRequestHeader(InputStream in) throws IOException {
+        List<String> requestHeader = new ArrayList<>();
+        final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
+
+        String line;
+        while (!"".equals(line = bufferedReader.readLine())) {
+            if (line == null) {
+                return requestHeader;
+            }
+            log.info(line);
+            requestHeader.add(line);
+        }
+        return requestHeader;
+    }
+
+    private byte[] getResponseBodyFromUrl(String url) throws IOException {
+        if ("/index.html".equals(url)) {
+            return Files.readAllBytes(new File("./webapp" + url).toPath());
+        } else {
+            return "Hello World".getBytes();
         }
     }
 }
