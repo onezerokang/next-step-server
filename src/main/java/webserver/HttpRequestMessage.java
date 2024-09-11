@@ -73,6 +73,10 @@ public class HttpRequestMessage {
         return this.requestPath;
     }
 
+    public Map<String, String> getBody() {
+        return this.body;
+    }
+
     public String getBody(String key) {
         return this.body.get(key);
     }
