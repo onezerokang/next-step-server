@@ -60,6 +60,17 @@ public class RequestHandler extends Thread {
         }
     }
 
+    private void response200HeaderWithCss(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
     private void response302Header(DataOutputStream dos, int lengthOfBodyContent, String location) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
@@ -87,8 +98,13 @@ public class RequestHandler extends Thread {
 
         final Path path = new File("./webapp" + httpRequestMessage.getUrl()).toPath();
         if (Files.exists(path)) {
+            final boolean isCssAccepted = httpRequestMessage.getHeaders("Accept").contains("text/css");
             final byte[] body = Files.readAllBytes(path);
-            response200Header(dos, body.length);
+            if (isCssAccepted) {
+                response200HeaderWithCss(dos, body.length);
+            } else {
+                response200Header(dos, body.length);
+            }
             responseBody(dos, body);
         }
 
