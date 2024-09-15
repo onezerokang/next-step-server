@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.HttpRequestUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -107,6 +109,8 @@ public class RequestHandler extends Thread {
             final byte[] body = new byte[0];
             response200Header(dos, body.length, cookies);
             responseBody(dos, body);
+        } else if (httpRequestMessage.getRequestPath().equals("/user/list")) {
+            getUserListPage(httpRequestMessage, dos);
         }
     }
 
@@ -122,5 +126,29 @@ public class RequestHandler extends Thread {
             return false;
         }
         return user.getPassword().equals(password);
+    }
+
+    private void getUserListPage(final HttpRequestMessage httpRequestMessage, final DataOutputStream dos) {
+        final Map<String, String> cookie = HttpRequestUtils.parseCookies(httpRequestMessage.getHeaders("Cookie"));
+        final boolean logined = Boolean.parseBoolean(cookie.get("logined"));
+        if (!logined) {
+            final byte[] body = new byte[0];
+            responseBody(dos, body);
+            response302Header(dos, body.length, "/user/login.html");
+        }
+
+        final Collection<User> users = DataBase.findAll();
+
+        final StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("<ul>");
+        for (User user : users) {
+            stringBuilder.append("<li>");
+            stringBuilder.append(user.toString());
+            stringBuilder.append("</li>");
+        }
+        stringBuilder.append("</ul>");
+        final byte[] body = stringBuilder.toString().getBytes();
+        response200Header(dos, body.length);
+        responseBody(dos, body);
     }
 }

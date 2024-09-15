@@ -73,6 +73,10 @@ public class HttpRequestMessage {
         return this.requestPath;
     }
 
+    public String getHeaders(String key) {
+        return this.headers.get(key);
+    }
+
     public Map<String, String> getBody() {
         return this.body;
     }
