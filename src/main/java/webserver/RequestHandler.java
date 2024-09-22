@@ -28,8 +28,8 @@ public class RequestHandler extends Thread {
                 connection.getPort());
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
-            final HttpRequestMessage httpRequestMessage = HttpRequestMessage.parseRequest(in);
-            handleHttpRequest(out, httpRequestMessage);
+            final HttpRequest httpRequest = new HttpRequest(in);
+            handleHttpRequest(out, httpRequest);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -92,13 +92,12 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private void handleHttpRequest(OutputStream out, HttpRequestMessage httpRequestMessage) throws IOException {
-        log.info("{}:{}", httpRequestMessage.getUrl(), httpRequestMessage.getBody());
+    private void handleHttpRequest(OutputStream out, HttpRequest httpRequest) throws IOException {
         DataOutputStream dos = new DataOutputStream(out);
 
-        final Path path = new File("./webapp" + httpRequestMessage.getUrl()).toPath();
+        final Path path = new File("./webapp" + httpRequest.getPath()).toPath();
         if (Files.exists(path)) {
-            final boolean isCssAccepted = httpRequestMessage.getHeaders("Accept").contains("text/css");
+            final boolean isCssAccepted = httpRequest.getHeader("Accept").contains("text/css");
             final byte[] body = Files.readAllBytes(path);
             if (isCssAccepted) {
                 response200HeaderWithCss(dos, body.length);
@@ -108,25 +107,25 @@ public class RequestHandler extends Thread {
             responseBody(dos, body);
         }
 
-        if (httpRequestMessage.getRequestPath().equals("/user/create")) {
-            signup(httpRequestMessage.getBody("userId"),
-                    httpRequestMessage.getBody("password"),
-                    httpRequestMessage.getBody("name"),
-                    httpRequestMessage.getBody("email"));
+        if (httpRequest.getPath().equals("/user/create")) {
+            signup(httpRequest.getBody("userId"),
+                    httpRequest.getBody("password"),
+                    httpRequest.getBody("name"),
+                    httpRequest.getBody("email"));
 
             final byte[] body = new byte[0];
             response302Header(dos, body.length, "/index.html");
             responseBody(dos, body);
-        } else if (httpRequestMessage.getRequestPath().equals("/user/login")) {
-            final boolean isSuccess = login(httpRequestMessage.getBody("userId"), httpRequestMessage.getBody("password"));
+        } else if (httpRequest.getPath().equals("/user/login")) {
+            final boolean isSuccess = login(httpRequest.getBody("userId"), httpRequest.getBody("password"));
             Map<String, String> cookies = new HashMap<>();
             cookies.put("logined", Boolean.toString(isSuccess));
 
             final byte[] body = new byte[0];
             response200Header(dos, body.length, cookies);
             responseBody(dos, body);
-        } else if (httpRequestMessage.getRequestPath().equals("/user/list")) {
-            getUserListPage(httpRequestMessage, dos);
+        } else if (httpRequest.getPath().equals("/user/list")) {
+            getUserListPage(httpRequest, dos);
         }
     }
 
@@ -144,8 +143,8 @@ public class RequestHandler extends Thread {
         return user.getPassword().equals(password);
     }
 
-    private void getUserListPage(final HttpRequestMessage httpRequestMessage, final DataOutputStream dos) {
-        final Map<String, String> cookie = HttpRequestUtils.parseCookies(httpRequestMessage.getHeaders("Cookie"));
+    private void getUserListPage(final HttpRequest httpRequest, final DataOutputStream dos) {
+        final Map<String, String> cookie = HttpRequestUtils.parseCookies(httpRequest.getHeader("Cookie"));
         final boolean logined = Boolean.parseBoolean(cookie.get("logined"));
         if (!logined) {
             final byte[] body = new byte[0];
