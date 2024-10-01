@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class HttpResponse {
 
@@ -18,87 +19,78 @@ public class HttpResponse {
 
     private final DataOutputStream dos;
 
-    private final Map<String, String> header = new HashMap<>();
+    private final Map<String, String> headers = new HashMap<>();
 
     public HttpResponse(final OutputStream outputStream) {
         this.dos = new DataOutputStream(outputStream);
     }
 
+    public void addHeader(final String key, final String value) {
+        this.headers.put(key, value);
+    }
+
     public void forward(final String requestPath) throws IOException {
         final Path filePath = new File("./webapp" + requestPath).toPath();
-
-        if (!Files.exists(filePath)) {
-            response200Header(dos, requestPath.length());
-            responseBody(dos, requestPath.getBytes());
-            return;
-        }
-
         final byte[] body = Files.readAllBytes(filePath);
 
         if (requestPath.endsWith(".css")) {
-            response200HeaderWithCss(dos, body.length);
+            headers.put("Content-Type", "text/css");
+        } else if (requestPath.endsWith(".js")){
+            headers.put("Content-Type", "application/javascript");
         } else {
-            response200Header(dos, body.length);
+            headers.put("Content-Type", "text/html;charset=utf-8");
         }
+        headers.put("Content-Length", body.length + "");
+        response200Header();
+        responseBody(body);
+    }
 
-        responseBody(dos, body);
+    public void forwardBody(final String body) {
+        final byte[] contents = body.getBytes();
+        headers.put("Content-Type", "text/html;charset-utf-8");
+        headers.put("Content-Length", contents.length + "");
+        response200Header();
+        responseBody(contents);
     }
 
     public void sendRedirect(final String location) {
-        response302Header(dos, location);
+        try {
+            this.dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            this.dos.writeBytes("Location: " + location + "\r\n");
+            processHeaders();
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
     }
 
-    public void addHeader(final String key, final String value) {
-        this.header.put(key, value);
-    }
-
-    public void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
+    public void response200Header() {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-            for (final String key: this.header.keySet()) {
-                dos.writeBytes(key + ": " + this.header.get(key) + "\r\n");
-            }
+            processHeaders();
             dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
     }
 
-    private void response200HeaderWithCss(DataOutputStream dos, int lengthOfBodyContent) {
+    public void responseBody(byte[] body) {
         try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-            for (final String key: this.header.keySet()) {
-                dos.writeBytes(key + ": " + this.header.get(key) + "\r\n");
-            }
-            dos.writeBytes("\r\n");
+            this.dos.write(body, 0, body.length);
+            this.dos.writeBytes("\r\n");
+            this.dos.flush();
         } catch (IOException e) {
             log.error(e.getMessage());
         }
     }
 
-    private void response302Header(DataOutputStream dos, String location) {
-        try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: " + location + "\r\n");
-            for (final String key: this.header.keySet()) {
-                dos.writeBytes(key + ": " + this.header.get(key) + "\r\n");
+    private void processHeaders() {
+        final Set<String> keys = this.headers.keySet();
+        for (String key : keys) {
+            try {
+                this.dos.writeBytes(key + ": " + this.headers.get(key) + "\r\n");
+            } catch (IOException e) {
+                log.error(e.getMessage());
             }
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
-    }
-
-    public void responseBody(DataOutputStream dos, byte[] body) {
-        try {
-            dos.write(body, 0, body.length);
-            dos.flush();
-        } catch (IOException e) {
-            log.error(e.getMessage());
         }
     }
 }

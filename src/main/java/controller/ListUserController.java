@@ -31,6 +31,6 @@ public class ListUserController extends AbstractController {
         }
         stringBuilder.append("</ul>");
 
-        httpResponse.forward(stringBuilder.toString());
+        httpResponse.forwardBody(stringBuilder.toString());
     }
 }
