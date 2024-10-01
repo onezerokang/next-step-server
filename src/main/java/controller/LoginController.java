@@ -10,14 +10,14 @@ import java.io.IOException;
 public class LoginController extends AbstractController {
 
     @Override
-    public void doPost(final HttpRequest httpRequest, final HttpResponse httpResponse) throws IOException {
-        final User user = DataBase.findUserById(httpRequest.getBody("userId"));
-        if (user == null || !user.getPassword().equals(httpRequest.getBody("password"))) {
-            httpResponse.addHeader("Set-Cookie", "logined=false");
-            httpResponse.forward("/user/login_failed.html");
+    public void doPost(final HttpRequest request, final HttpResponse response) throws IOException {
+        final User user = DataBase.findUserById(request.getBody("userId"));
+        if (user == null || !user.getPassword().equals(request.getBody("password"))) {
+            response.addHeader("Set-Cookie", "logined=false");
+            response.forward("/user/login_failed.html");
             return;
         }
-        httpResponse.addHeader("Set-Cookie", "logined=true");
-        httpResponse.sendRedirect("/index.html");
+        response.addHeader("Set-Cookie", "logined=true");
+        response.sendRedirect("/index.html");
     }
 }

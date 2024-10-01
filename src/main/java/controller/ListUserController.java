@@ -13,10 +13,10 @@ import java.util.Map;
 public class ListUserController extends AbstractController {
 
     @Override
-    public void doGet(final HttpRequest httpRequest, final HttpResponse httpResponse) throws IOException {
-        final boolean logined = Boolean.parseBoolean(httpRequest.getCookie("logined"));
+    public void doGet(final HttpRequest request, final HttpResponse response) throws IOException {
+        final boolean logined = Boolean.parseBoolean(request.getCookie("logined"));
         if (!logined) {
-            httpResponse.sendRedirect("/user/login.html");
+            response.sendRedirect("/user/login.html");
             return;
         }
 
@@ -31,6 +31,6 @@ public class ListUserController extends AbstractController {
         }
         stringBuilder.append("</ul>");
 
-        httpResponse.forwardBody(stringBuilder.toString());
+        response.forwardBody(stringBuilder.toString());
     }
 }

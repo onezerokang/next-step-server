@@ -12,15 +12,15 @@ public class CreateUserController extends AbstractController {
     private static final Logger log = LoggerFactory.getLogger(CreateUserController.class);
 
     @Override
-    public void doPost(final HttpRequest httpRequest, final HttpResponse httpResponse) {
-        final User user = new User(httpRequest.getBody("userId"),
-                httpRequest.getBody("password"),
-                httpRequest.getBody("name"),
-                httpRequest.getBody("email")
+    public void doPost(final HttpRequest request, final HttpResponse response) {
+        final User user = new User(request.getBody("userId"),
+                request.getBody("password"),
+                request.getBody("name"),
+                request.getBody("email")
         );
         DataBase.addUser(user);
         log.info("Signup successful: User: {}", user);
 
-        httpResponse.sendRedirect("/index.html");
+        response.sendRedirect("/index.html");
     }
 }

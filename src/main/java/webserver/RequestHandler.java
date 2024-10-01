@@ -17,12 +17,6 @@ import java.util.Map;
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
-    private static final Map<String, Controller> controllers = new HashMap<String, Controller>() {{
-        put("/user/create", new CreateUserController());
-        put("/user/login", new LoginController());
-        put("/user/list", new ListUserController());
-    }};
-
     private Socket connection;
 
     public RequestHandler(Socket connectionSocket) {
@@ -44,11 +38,19 @@ public class RequestHandler extends Thread {
     }
 
     private void handleHttpRequest(HttpRequest httpRequest, HttpResponse httpResponse) throws IOException {
-        final Controller controller = controllers.get(httpRequest.getPath());
+        final Controller controller = RequestMapping.getController(httpRequest.getPath());
         if (controller == null) {
-            httpResponse.forward(httpRequest.getPath());
-            return;
+            final String path = getDefaultPath(httpRequest.getPath());
+            httpResponse.forward(path);
+        } else {
+            controller.service(httpRequest, httpResponse);
         }
-        controller.service(httpRequest, httpResponse);
+    }
+
+    private String getDefaultPath(String path) {
+        if (path.equals("/")) {
+            return "/index.html";
+        }
+        return path;
     }
 }
