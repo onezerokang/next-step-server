@@ -23,6 +23,8 @@ public class HttpRequestTest {
         assertEquals("/user/create", request.getPath());
         assertEquals("keep-alive", request.getHeader("Connection"));
         assertEquals("javajigi", request.getQuerystring("userId"));
+        assertEquals("true", request.getCookie("logined"));
+        assertEquals("ko", request.getCookie("country"));
     }
 
     @Test

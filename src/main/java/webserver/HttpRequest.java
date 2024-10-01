@@ -16,6 +16,7 @@ public class HttpRequest {
 
     private final RequestLine requestLine;
     private final Map<String, String> headers;
+    private final Map<String, String> cookies;
     private final Map<String, String> body;
 
     public HttpRequest(final InputStream in) throws IOException {
@@ -44,7 +45,10 @@ public class HttpRequest {
             body.putAll(HttpRequestUtils.parseQueryString(IOUtils.readData(bufferedReader, contentLength)));
         }
 
+        final Map<String, String> cookies = HttpRequestUtils.parseCookies(headers.get("Cookie"));
+
         this.headers = headers;
+        this.cookies = cookies;
         this.body = body;
     }
 
@@ -66,5 +70,9 @@ public class HttpRequest {
 
     public String getBody(String key) {
         return this.body.get(key);
+    }
+
+    public String getCookie(final String key) {
+        return this.cookies.get(key);
     }
 }

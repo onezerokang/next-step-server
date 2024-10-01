@@ -14,8 +14,7 @@ public class ListUserController extends AbstractController {
 
     @Override
     public void doGet(final HttpRequest httpRequest, final HttpResponse httpResponse) throws IOException {
-        final Map<String, String> cookie = HttpRequestUtils.parseCookies(httpRequest.getHeader("Cookie"));
-        final boolean logined = Boolean.parseBoolean(cookie.get("logined"));
+        final boolean logined = Boolean.parseBoolean(httpRequest.getCookie("logined"));
         if (!logined) {
             httpResponse.sendRedirect("/user/login.html");
             return;
