@@ -1,5 +1,6 @@
 package controller;
 
+import webserver.HttpMethod;
 import webserver.HttpRequest;
 import webserver.HttpResponse;
 
@@ -9,9 +10,9 @@ public abstract class AbstractController implements Controller {
 
     @Override
     public void service(final HttpRequest httpRequest, final HttpResponse httpResponse) throws IOException {
-        if (httpRequest.getMethod().equals("GET")) {
+        if (httpRequest.getMethod().isGet()) {
             doGet(httpRequest, httpResponse);
-        } else if (httpRequest.getMethod().equals("POST")) {
+        } else if (httpRequest.getMethod().isPost()) {
             doPost(httpRequest, httpResponse);
         }
     }

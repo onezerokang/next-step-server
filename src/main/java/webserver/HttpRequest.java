@@ -3,35 +3,31 @@ package webserver;
 import util.HttpRequestUtils;
 import util.IOUtils;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 public class HttpRequest {
-    private static final String REQUEST_LINE_DELIMITER = " ";
-    private static final String QUERYSTRING_DELIMITER = "?";
     private static final String HEADER_DELIMITER = ": ";
 
-    private final String method;
-    private final String path;
-    private final Map<String, String> querystring;
+    private final RequestLine requestLine;
     private final Map<String, String> headers;
     private final Map<String, String> body;
 
     public HttpRequest(final InputStream in) throws IOException {
-        final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
+        final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
         String line = bufferedReader.readLine();
 
-        final String[] requestLineTokens = line.split(REQUEST_LINE_DELIMITER);
-        final String method = requestLineTokens[0];
-        final String url = requestLineTokens[1];
+        if (line == null) {
+            throw new IllegalArgumentException("Request line cannot be null");
+        }
 
-        final int index = url.indexOf(QUERYSTRING_DELIMITER);
-        final String path = index == -1 ? url : url.substring(0, index);
-        final Map<String, String> querystring = index != -1 ?
-                HttpRequestUtils.parseQueryString(url.substring(index + 1)) :
-                new HashMap<>();
+        this.requestLine = new RequestLine(line);
 
         final HashMap<String, String> headers = new HashMap<>();
         while (!"".equals(line = bufferedReader.readLine())) {
@@ -43,46 +39,32 @@ public class HttpRequest {
         }
 
         final HashMap<String, String> body = new HashMap<>();
-        if ("POST".equals(method)) {
+        if (getMethod().isPost()) {
             final int contentLength = Integer.parseInt(headers.get("Content-Length"));
             body.putAll(HttpRequestUtils.parseQueryString(IOUtils.readData(bufferedReader, contentLength)));
         }
 
-        this.method = method;
-        this.path = path;
-        this.querystring = querystring;
         this.headers = headers;
         this.body = body;
     }
 
-    public String getMethod() {
-        return this.method;
+    public HttpMethod getMethod() {
+        return this.requestLine.getMethod();
     }
 
     public String getPath() {
-        return this.path;
+        return this.requestLine.getPath();
     }
 
     public String getHeader(String key) {
         return this.headers.get(key);
     }
 
-    public String getParameter(String key) {
-        return this.method.equals("GET") ? this.querystring.get(key) : this.body.get(key);
+    public String getQuerystring(String key) {
+        return this.requestLine.getQuerystring().get(key);
     }
 
     public String getBody(String key) {
         return this.body.get(key);
-    }
-
-    @Override
-    public String toString() {
-        return "HttpRequestMessage{" +
-                "method='" + method + '\'' +
-                ", requestPath='" + path + '\'' +
-                ", querystring=" + querystring +
-                ", headers=" + headers +
-                ", body='" + body + '\'' +
-                '}';
     }
 }

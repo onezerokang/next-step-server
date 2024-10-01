@@ -1,4 +1,5 @@
 import org.junit.Test;
+import webserver.HttpMethod;
 import webserver.HttpRequest;
 
 import java.io.File;
@@ -18,10 +19,10 @@ public class HttpRequestTest {
         final HttpRequest request = new HttpRequest(in);
 
         // then
-        assertEquals("GET", request.getMethod());
+        assertEquals(HttpMethod.GET, request.getMethod());
         assertEquals("/user/create", request.getPath());
         assertEquals("keep-alive", request.getHeader("Connection"));
-        assertEquals("javajigi", request.getParameter("userId"));
+        assertEquals("javajigi", request.getQuerystring("userId"));
     }
 
     @Test
@@ -33,9 +34,9 @@ public class HttpRequestTest {
         final HttpRequest request = new HttpRequest(in);
 
         // then
-        assertEquals("POST", request.getMethod());
+        assertEquals(HttpMethod.POST, request.getMethod());
         assertEquals("/user/create", request.getPath());
         assertEquals("keep-alive", request.getHeader("Connection"));
-        assertEquals("javajigi", request.getParameter("userId"));
+        assertEquals("javajigi", request.getBody("userId"));
     }
 }
